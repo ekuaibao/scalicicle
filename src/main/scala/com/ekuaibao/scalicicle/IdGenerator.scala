@@ -29,22 +29,19 @@ class IdGenerator(redis: Redis, luaScript: String, luaScriptSha: String) {
     *
     * @return A ID.
     */
-  def generateId(logicalShardId: Int = 0)(implicit executor: ExecutionContext): Future[Long] = {
-    validateLogicalShardId(logicalShardId)
-    executeOrLoadLuaScript(1, logicalShardId)
+  def generateId()(implicit executor: ExecutionContext): Future[Long] = {
+    executeOrLoadLuaScript(1)
   }
 
   /**
     * Generate a batch of IDs.
     *
-    * @param batchSize      The number IDs to return.
-    * @param logicalShardId shard ID.
+    * @param batchSize The number IDs to return.
     * @return A list of IDs. The number of IDs may be less than or equal to the batch size depending on if the sequence needs to roll in Redis.
     */
-  def generateIdBatch(batchSize: Int, logicalShardId: Int = 0)(implicit executor: ExecutionContext): Future[NumericRange[Long]] = {
+  def generateIdBatch(batchSize: Int)(implicit executor: ExecutionContext): Future[NumericRange[Long]] = {
     validateBatchSize(batchSize)
-    validateLogicalShardId(logicalShardId)
-    executeOrLoadLuaScript(batchSize, logicalShardId) map { id =>
+    executeOrLoadLuaScript(batchSize) map { id =>
       NumericRange(id, id + batchSize, 1L)
     }
   }
@@ -63,33 +60,18 @@ class IdGenerator(redis: Redis, luaScript: String, luaScriptSha: String) {
     * * If the script with this SHA was already loaded by another process, we can use it instead of loading it
     * again, giving us a small performance gain.
     *
-    * @param batchSize      The number to increment the sequence by in Redis.
-    * @param logicalShardId shard ID.
+    * @param batchSize The number to increment the sequence by in Redis.
     * @return The result of executing the Lua script.
     */
-  private def executeOrLoadLuaScript(batchSize: Int, logicalShardId: Int)(implicit executor: ExecutionContext): Future[Long] = {
-    val shard = logicalShardId.toString
+  private def executeOrLoadLuaScript(batchSize: Int)(implicit executor: ExecutionContext): Future[Long] = {
     val size = batchSize.toString
     // Great! The script was already loaded and ran, so we saved a call.
-    redis.evalSha(luaScriptSha, shard, size).recoverWith {
+    redis.evalSha(luaScriptSha, size).recoverWith {
       case RedisScriptNotFoundException =>
         // Otherwise we need to load and try again, failing if it doesn't work the second time.
         redis.scriptLoad(luaScript).flatMap { sha =>
-          redis.evalSha(luaScriptSha, shard, size)
+          redis.evalSha(luaScriptSha, size)
         }
-    }
-  }
-
-  /**
-    * Check that the given logical shard ID is within the bounds that we allow. This is important to
-    * check, as otherwise when bit-shifting we may lose digits outside of the bits we care about,
-    * introducing possible collisions.
-    *
-    * @param logicalShardId The logical shard ID as retrieved from Redis.
-    */
-  private def validateLogicalShardId(logicalShardId: Int) = {
-    if (logicalShardId < MIN_LOGICAL_SHARD_ID || logicalShardId > MAX_LOGICAL_SHARD_ID) {
-      throw new InvalidLogicalShardIdException(s"The logical shard ID set in Redis is less than $MIN_LOGICAL_SHARD_ID or is greater than the supported maximum of $MAX_LOGICAL_SHARD_ID")
     }
   }
 
