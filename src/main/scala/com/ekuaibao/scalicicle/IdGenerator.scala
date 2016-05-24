@@ -4,7 +4,7 @@ import java.io.{ByteArrayOutputStream, IOException}
 import java.security.MessageDigest
 
 import scala.collection.immutable.NumericRange
-import scala.concurrent.Future
+import scala.concurrent._
 import scala.util.control.NoStackTrace
 
 /**
@@ -29,7 +29,7 @@ class IdGenerator(redis: Redis, luaScript: String, luaScriptSha: String) {
     *
     * @return A ID.
     */
-  def generateId(logicalShardId: Int = 0): Future[Long] = {
+  def generateId(logicalShardId: Int = 0)(implicit executor: ExecutionContext): Future[Long] = {
     validateLogicalShardId(logicalShardId)
     executeOrLoadLuaScript(1, logicalShardId)
   }
@@ -41,7 +41,7 @@ class IdGenerator(redis: Redis, luaScript: String, luaScriptSha: String) {
     * @param logicalShardId shard ID.
     * @return A list of IDs. The number of IDs may be less than or equal to the batch size depending on if the sequence needs to roll in Redis.
     */
-  def generateIdBatch(batchSize: Int, logicalShardId: Int = 0): Future[NumericRange[Long]] = {
+  def generateIdBatch(batchSize: Int, logicalShardId: Int = 0)(implicit executor: ExecutionContext): Future[NumericRange[Long]] = {
     validateBatchSize(batchSize)
     validateLogicalShardId(logicalShardId)
     executeOrLoadLuaScript(batchSize, logicalShardId) map { id =>
@@ -67,7 +67,7 @@ class IdGenerator(redis: Redis, luaScript: String, luaScriptSha: String) {
     * @param logicalShardId shard ID.
     * @return The result of executing the Lua script.
     */
-  private def executeOrLoadLuaScript(batchSize: Int, logicalShardId: Int): Future[Long] = {
+  private def executeOrLoadLuaScript(batchSize: Int, logicalShardId: Int)(implicit executor: ExecutionContext): Future[Long] = {
     val shard = logicalShardId.toString
     val size = batchSize.toString
     // Great! The script was already loaded and ran, so we saved a call.
