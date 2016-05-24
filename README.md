@@ -10,12 +10,12 @@ A fork of Icicle written in scala
 
 ## Structure
 
-Nearly same as the original structure. Just swap Time and Shard ID.
+Nearly as same as the original structure. Just swap Sequence and Shard ID.
 Like this:
 
-Sign | Shard ID | Time   | Sequence
----- | -------- | ------ | -------
-1bit | 10bits   | 41bits | 12bits
+Sign | Time   | Sequence | Shard ID
+---- | ------ | -------- | --------
+1bit | 41bits | 12bits   | 10bits
 
 But, it uses a different method to generate ids.
 
