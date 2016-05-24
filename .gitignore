@@ -1,12 +1,60 @@
+# mac
+.DS_Store
+
+# eclipse
+*.pydevproject
+.classpath
+.project
+.metadata/
+.settings/
+*/bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+local.properties
+.loadpath
+
+# External tool builders
+.externalToolBuilders/
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
+# IDEA
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# gradle
+.gradle/
+gradle/
+gradlew
+gradlew.*
+
+# build
+target/
+build/
 *.class
+*/.gitignore
+
+# Logs
+logs
 *.log
+
+# Runtime data
+*.pid
+*.seed
+
+# vagrant
+.vagrant
 
 # sbt specific
 .cache
 .history
 .lib/
 dist/*
-target/
 lib_managed/
 src_managed/
 project/boot/
