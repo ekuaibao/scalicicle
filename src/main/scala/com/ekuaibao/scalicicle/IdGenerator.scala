@@ -42,7 +42,7 @@ class IdGenerator(redis: Redis, luaScript: String, luaScriptSha: String) {
   def generateIdBatch(batchSize: Int)(implicit executor: ExecutionContext): Future[NumericRange[Long]] = {
     validateBatchSize(batchSize)
     executeOrLoadLuaScript(batchSize) map { id =>
-      NumericRange(id, id + batchSize, 1L)
+      NumericRange(id, id + batchSize * SEQUENCE_STEP, SEQUENCE_STEP)
     }
   }
 
@@ -65,12 +65,13 @@ class IdGenerator(redis: Redis, luaScript: String, luaScriptSha: String) {
     */
   private def executeOrLoadLuaScript(batchSize: Int)(implicit executor: ExecutionContext): Future[Long] = {
     val size = batchSize.toString
+    val time = System.currentTimeMillis().toString
     // Great! The script was already loaded and ran, so we saved a call.
-    redis.evalSha(luaScriptSha, size).recoverWith {
+    redis.evalSha(luaScriptSha, size, time).recoverWith {
       case RedisScriptNotFoundException =>
         // Otherwise we need to load and try again, failing if it doesn't work the second time.
         redis.scriptLoad(luaScript).flatMap { sha =>
-          redis.evalSha(luaScriptSha, size)
+          redis.evalSha(luaScriptSha, size, time)
         }
     }
   }
@@ -99,6 +100,7 @@ object IdGenerator {
   val MIN_LOGICAL_SHARD_ID = 0L
 
   val MAX_BATCH_SIZE = (1 << SEQUENCE_BITS) - 1
+  val SEQUENCE_STEP = 1L << LOGICAL_SHARD_ID_BITS
 
   /**
     * Create an ID generator that will operate using the given Redis client.
