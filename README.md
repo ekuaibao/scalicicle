@@ -15,7 +15,7 @@ Like this:
 
 Sign | Shard ID | Time   | Sequence
 ---- | -------- | ------ | -------
-1bit | 41bits   | 10bits | 12bits
+1bit | 10bits   | 41bits | 12bits
 
 But, it uses a different method to generate ids.
 
